@@ -5,8 +5,9 @@
             "type": "ionide",
             "request": "launch",
             "name": "Ionide-Debug",
-            "program": "${workspaceRoot}/${command.AskForProgramName}",
-            "stopOnEntry": true
+            "program": "${workspaceRoot}/build/TestApp.exe",
+            "stopOnEntry": true,
+            "debugServer": 4711
         }
     ]
 }

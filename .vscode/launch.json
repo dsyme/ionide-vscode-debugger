@@ -19,10 +19,9 @@
 			"request": "launch",
 			"name": "Server",
 			"cwd": "${workspaceRoot}",
-			"program": "${workspaceRoot}/src/ionideDebug.ts",
+			"program": "${workspaceRoot}/out/ionideDebug.js",
 			"args": [ "--server=4711" ],
-			"sourceMaps": true,
-			"outFiles": [ "${workspaceRoot}/out/**/*.js" ]
+			"sourceMaps": true
 		},
 		{
 			"type": "ionide",
