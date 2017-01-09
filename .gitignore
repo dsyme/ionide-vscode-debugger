@@ -1,0 +1,11 @@
+.DS_Store
+node_modules/
+out/
+npm-debug.log
+.fake/
+paket.exe
+build/
+packages/
+bin/
+obj/
+

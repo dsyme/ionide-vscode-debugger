@@ -1,0 +1,109 @@
+{
+	"name": "Ionide-debug",
+	"displayName": "Ionide Debug",
+	"version": "0.0.1",
+	"publisher": "andreweinand",
+	"description": "Starter extension for developing debug adapters for VS Code.",
+	"author": {
+      "name": "Krzysztof Cieślak",
+      "url": "https://twitter.com/k_cieslak"
+    },
+	"engines": {
+		"vscode": "^1.1.0",
+		"node": "^6.5.0"
+	},
+	"license": "SEE LICENSE IN LICENSE.md",
+	"icon": "images/logo.png",
+	"bugs": {
+		"url": "https://github.com/ionide/ionide-vscode-fsharp/issues"
+	},
+	"homepage": "http://ionide.io",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/ionide/ionide-vscode-fsharp.git"
+	},
+	"categories": [
+		"Debuggers"
+	],
+	"private": true,
+
+	"dependencies": {
+		"vscode-debugprotocol": "^1.15.0",
+		"vscode-debugadapter": "^1.15.0",
+		"vscode": "^1.0.3"
+	},
+	"devDependencies": {
+		"@types/es6-collections": "^0.5.29",
+		"@types/es6-promise": "^0.0.32",
+		"@types/mocha": "^2.2.33",
+		"@types/node": "^6.0.50",
+		"typescript": "^2.0.10",
+		"mocha": "^3.1.2",
+		"vscode": "^1.0.3",
+		"vscode-debugadapter-testsupport": "^1.15.0"
+	},
+	"scripts": {
+		"prepublish": "node ./node_modules/typescript/bin/tsc -p ./src",
+		"compile": "node ./node_modules/typescript/bin/tsc -p ./src",
+		"watch": "node ./node_modules/typescript/bin/tsc -w -p ./src",
+		"test": "node ./node_modules/mocha/bin/mocha -u tdd ./out/tests/",
+		"postinstall": "node ./node_modules/vscode/bin/install"
+	},
+	"main": "./out/extension",
+	"activationEvents": [
+		"onCommand:IonideDebug.getProgramName",
+		"onCommand:IonideDebug.provideInitialConfigurations"
+	],
+	"contributes": {
+		"breakpoints": [
+			{
+				"language": "fsharp"
+			}
+		],
+		"debuggers": [
+			{
+				"type": "ionide",
+				"label": "Ionide Debug",
+
+				"program": "./out/ionideDebug.js",
+				"runtime": "node",
+
+				"variables": {
+					"AskForProgramName": "IonideDebug.getProgramName"
+				},
+
+				"configurationSnippets": [
+					{
+						"label": "Ionide Debug: Launch",
+						"description": "A new configuration for launching a Ionide debuger program",
+						"body": {
+							"type": "ionide",
+							"request": "launch",
+							"name": "${2:Launch Program}",
+							"program": "^\"\\${workspaceRoot}/${1:Program}\""
+						}
+					}
+				],
+
+				"configurationAttributes": {
+					"launch": {
+						"required": [ "program" ],
+						"properties": {
+							"program": {
+								"type": "string",
+								"description": "Absolute path to a text file.",
+								"default": "${workspaceRoot}/${command.AskForProgramName}"
+							},
+							"stopOnEntry": {
+								"type": "boolean",
+								"description": "Automatically stop after launch.",
+								"default": true
+							}
+						}
+					}
+				},
+				"initialConfigurations": "IonideDebug.provideInitialConfigurations"
+			}
+		]
+	}
+}
