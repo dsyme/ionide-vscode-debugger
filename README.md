@@ -10,8 +10,8 @@ _Part of the [Ionide](http://ionide.io) plugin suite._
 3. Run `build.cmd` to build test application.
 3. Open folder in VSCode `code .`
 4. Make changes
-5. Press `F5` to build plugin and start experimental instance of VSCode
-6. Make PR ;)
+5. Press `F5` to build debugger and start experimental instance of VSCode
+6. Press `F5` in experimental instace to start debugger. First instance will be attached and debugging it.
 
 ## Contributing and copyright
 
