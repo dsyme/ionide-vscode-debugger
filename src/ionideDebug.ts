@@ -1,7 +1,7 @@
 import {
 	DebugSession,
 	InitializedEvent, TerminatedEvent, StoppedEvent, BreakpointEvent, OutputEvent, Event,
-	Thread, StackFrame, Scope, Source, Handles, Breakpoint
+	Thread, StackFrame, Scope, Source, Handles, Breakpoint, Variable
 } from 'vscode-debugadapter';
 import {DebugProtocol} from 'vscode-debugprotocol';
 import * as fs  from 'fs';
@@ -101,6 +101,10 @@ class Mdbg {
 		return this.send(`go`)
 	}
 
+	public next() {
+		return this.send(`n`)
+	}
+
 	public setBreakpoint (file : string, line : number) {
 		let cmd = `b ${file}:${line}`
 		return this.send(cmd);
@@ -108,6 +112,18 @@ class Mdbg {
 
 	public getThreads() {
 		return this.send(`t`)
+	}
+
+	public getStack(depth : number, thread: number) {
+		return this.send(`w -c ${depth} ${thread}`)
+	}
+
+	public getVariables() {
+		return this.send(`p`)
+	}
+
+	public getVariable(item : string) {
+		return this.send(`p ${item}`)
 	}
 }
 
@@ -230,16 +246,92 @@ class IonideDebugSession extends DebugSession {
 	protected stackTraceRequest(response: DebugProtocol.StackTraceResponse, args: DebugProtocol.StackTraceArguments): void
 	{
 		console.log("[LOG] StackTrace called")
+		this._mdbg
+			.getStack(args.levels, args.threadId)
+			.then(t => {
+				let lines = t.split("\n")
+							 .map((s) => s.trim())
+							 .slice(1)
+							 .filter((s) => {
+								return s.indexOf("mdbg") < 0
+							 })
+				let frames =
+					lines.map(n => {
+						let ns = n.split(". ")
+						let id = Number(ns[0].replace("*",""))
+						let xs = ns[1].split("(")
+						let name = xs[0].trim()
+						let location = xs[1].replace(")","")
+
+						var source : Source;
+						var line : number;
+						if (location === "source line information unavailable")
+						{
+							source = null
+							line = 0
+						}
+						else
+						{
+							let locs = location.split(".fs:")
+							let p = locs[0] + ".fs"
+							line = Number(locs[1])
+							source = new Source(path.basename(p), p)
+
+						}
+
+						return new StackFrame(id, name, source, line)
+
+				});
+
+				response.body = {
+					stackFrames: frames,
+					totalFrames: frames.length
+				};
+				this.sendResponse(response);
+
+			})
+
 	}
 
 	protected scopesRequest(response: DebugProtocol.ScopesResponse, args: DebugProtocol.ScopesArguments): void
 	{
 		console.log("[LOG] Scopes called")
+		const frameReference = args.frameId;
+		const scopes = new Array<Scope>();
+		scopes.push(new Scope("Local", 1, false));
+
+		response.body = {
+			scopes: scopes
+		};
+		this.sendResponse(response);
 	}
 
 	protected variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments): void
 	{
-		console.log("[LOG] Variables called")
+		this._mdbg
+			.getVariables()
+			.then(t => {
+				let vars =
+					t.split("\n")
+					.filter((s) => {
+						return s.indexOf("mdbg") < 0
+					})
+					.map(line =>
+					{
+						let ls = line.split("=")
+						return {
+							name: ls[0],
+							value: ls[1],
+							variablesReference: 0
+						}
+					})
+				response.body = {
+					variables: vars
+				};
+				this.sendResponse(response);
+
+
+			})
 	}
 
 	protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void
@@ -256,15 +348,12 @@ class IonideDebugSession extends DebugSession {
 				this.sendResponse(response);
 				let lines = o.split("\n").map((s) => s.trim())
 
-				if (lines.indexOf("STOP: Process Exited") > 0 )
+				if (lines.filter( s => s.indexOf("STOP: Process Exited") == 0).length > 0 )
 				{
 					this.sendEvent(new TerminatedEvent());
 				}
-				else {
-					let bp = lines.indexOf("STOP: Breakpoint Hit")
-					if (bp > 0) {
-						let location = lines[bp+1]
-					}
+				else if  (lines.filter( s => s.indexOf("STOP: Breakpoint") == 0).length > 0 ) {
+					this.sendEvent(new StoppedEvent("breakpoint", 0));
 				}
 			})
 
@@ -274,6 +363,13 @@ class IonideDebugSession extends DebugSession {
 	protected nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): void
 	{
 		console.log("[LOG] Next called")
+		this._mdbg
+			.next()
+			.then(n => {
+				this.sendResponse(response)
+				this.sendEvent(new StoppedEvent("step", 0));
+
+			})
 	}
 
 	protected stepInRequest(response: DebugProtocol.StepInResponse): void {
@@ -296,6 +392,19 @@ class IonideDebugSession extends DebugSession {
 	protected evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments): void
 	{
 		console.log("[LOG] Evaluate called")
+		this._mdbg
+			.getVariable(args.expression)
+			.then(p => {
+				let v = p.split("\n")[0]
+
+
+				response.body = {
+					result: v,
+					variablesReference: 0
+				}
+				this.sendResponse(response);
+
+			})
 	}
 
 
